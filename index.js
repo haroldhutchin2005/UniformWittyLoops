@@ -24,13 +24,17 @@ app.get('/api/upload', async (req, res) => {
         }
 
         const info = await ytdl.getInfo(link);
-        const title = sanitize(info.videoDetails.title.replace(/\s+/g, '_'));
+        const title = sanitize(info.videoDetails.title);
 
         const response = await axios.get(`https://deku-rest-api.replit.app/ytdl?url=${link}&type=mp4`, {
             responseType: 'arraybuffer'
         });
 
-        const fileName = `${title}.mp3`;
+        let fileName = `${title}.mp3`;
+
+        // Replace spaces with _ or -
+        fileName = fileName.replace(/\s+/g, '_'); // Replace spaces with _
+
         const filePath = `${__dirname}/${fileName}`;
 
         await fs.promises.writeFile(filePath, Buffer.from(response.data, 'binary'));
