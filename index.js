@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const ytdl = require('ytdl-core');
 const sanitize = require('sanitize-filename');
-const fs = require('fs'); 
+const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 8080;
 
@@ -33,10 +33,10 @@ app.get('/api/upload', async (req, res) => {
         const fileName = `${title}.mp3`;
         const filePath = `${__dirname}/${fileName}`;
 
-        await fs.promises.writeFile(filePath, Buffer.from(response.data, 'binary')); 
+        await fs.promises.writeFile(filePath, Buffer.from(response.data, 'binary'));
 
         library.push({ link, title });
-        await fs.promises.writeFile(`${__dirname}/library.json`, JSON.stringify(library, null, 2)); 
+        await fs.promises.writeFile(`${__dirname}/library.json`, JSON.stringify(library, null, 2));
 
         res.json({ src: fileName });
 
@@ -54,23 +54,23 @@ app.get('/files', (req, res) => {
     }
 
     try {
-        res.setHeader('Content-Type', 'video/mp4');
+        res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('Content-Disposition', `inline; filename=${src}`);
 
         const filePath = `${__dirname}/${src}`;
-        const videoStream = fs.createReadStream(filePath); 
+        const audioStream = fs.createReadStream(filePath);
 
-        videoStream.pipe(res);
+        audioStream.pipe(res);
 
     } catch (error) {
-        console.error('Error serving YouTube video:', error);
-        res.status(500).send('Error serving YouTube video');
+        console.error('Error serving YouTube audio:', error);
+        res.status(500).send('Error serving YouTube audio');
     }
 });
 
 app.get('/api/library', async (req, res) => {
     try {
-        const data = await fs.promises.readFile(`${__dirname}/library.json`, 'utf8'); 
+        const data = await fs.promises.readFile(`${__dirname}/library.json`, 'utf8');
         library = JSON.parse(data);
         res.json(library);
     } catch (error) {
