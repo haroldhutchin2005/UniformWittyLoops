@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const ytdl = require('ytdl-core');
 const sanitize = require('sanitize-filename');
-const fs = require('fs').promises;
+const fs = require('fs'); 
 const app = express();
 const port = process.env.PORT || 8080;
 
@@ -33,10 +33,10 @@ app.get('/api/upload', async (req, res) => {
         const fileName = `${title}.mp3`;
         const filePath = `${__dirname}/${fileName}`;
 
-        await fs.writeFile(filePath, Buffer.from(response.data, 'binary'));
+        await fs.promises.writeFile(filePath, Buffer.from(response.data, 'binary')); 
 
         library.push({ link, title });
-        await fs.writeFile(`${__dirname}/library.json`, JSON.stringify(library, null, 2));
+        await fs.promises.writeFile(`${__dirname}/library.json`, JSON.stringify(library, null, 2)); 
 
         res.json({ src: fileName });
 
@@ -58,7 +58,7 @@ app.get('/files', (req, res) => {
         res.setHeader('Content-Disposition', `inline; filename=${src}`);
 
         const filePath = `${__dirname}/${src}`;
-        const videoStream = fs.createReadStream(filePath);
+        const videoStream = fs.createReadStream(filePath); 
 
         videoStream.pipe(res);
 
@@ -70,7 +70,7 @@ app.get('/files', (req, res) => {
 
 app.get('/api/library', async (req, res) => {
     try {
-        const data = await fs.readFile(`${__dirname}/library.json`, 'utf8');
+        const data = await fs.promises.readFile(`${__dirname}/library.json`, 'utf8'); 
         library = JSON.parse(data);
         res.json(library);
     } catch (error) {
