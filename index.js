@@ -11,6 +11,16 @@ let library = [];
 app.use(express.static('public'));
 app.use(express.json());
 
+function cleanFileName(fileName) {
+    // Replace spaces with _
+    fileName = fileName.replace(/\s+/g, '_');
+    
+    // Remove unfamiliar symbols
+    fileName = fileName.replace(/[^\w\s\-.]/g, '');
+
+    return fileName;
+}
+
 app.get('/api/upload', async (req, res) => {
     const { link } = req.query;
 
@@ -32,8 +42,8 @@ app.get('/api/upload', async (req, res) => {
 
         let fileName = `${title}.mp3`;
 
-        // Replace spaces with _ or -
-        fileName = fileName.replace(/\s+/g, '_'); // Replace spaces with _
+        // Clean file name
+        fileName = cleanFileName(fileName);
 
         const filePath = `${__dirname}/${fileName}`;
 
