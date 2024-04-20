@@ -66,7 +66,7 @@ app.get('/files', async (req, res) => {
     try {
         const fileExists = await fs.promises.access(filePath, fs.constants.F_OK);
         if (!fileExists) {
-            return res.status(404).json({ error: 'File does not exist' });
+            return res.status(404).json({ error: 'File does not exist in the file system' });
         }
 
         res.setHeader('Content-Type', 'audio/mpeg');
@@ -77,6 +77,9 @@ app.get('/files', async (req, res) => {
         audioStream.pipe(res);
 
     } catch (error) {
+        if (error.code === 'ENOENT') {
+            return res.status(404).json({ error: 'File does not exist in the file system' });
+        }
         console.error('Error serving YouTube audio:', error);
         res.status(500).send('Error serving YouTube audio');
     }
