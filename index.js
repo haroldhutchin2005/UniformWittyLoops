@@ -54,7 +54,7 @@ app.get('/api/upload', async (req, res) => {
     }
 });
 
-app.get('/files', (req, res) => {
+app.get('/files', async (req, res) => {
     const { src } = req.query;
 
     if (!src) {
@@ -63,29 +63,23 @@ app.get('/files', (req, res) => {
 
     const filePath = `${__dirname}/${src}`;
 
-    fs.access(filePath, fs.constants.F_OK, (err) => {
-        if (err) {
-            if (err.code === 'ENOENT') {
-                return res.status(404).json({ error: 'File does not exist' });
-            } else {
-                console.error('Error accessing file:', err);
-                return res.status(500).send('Error accessing file');
-            }
+    try {
+        const fileExists = await fs.promises.access(filePath, fs.constants.F_OK);
+        if (!fileExists) {
+            return res.status(404).json({ error: 'File does not exist' });
         }
 
-        try {
-            res.setHeader('Content-Type', 'audio/mpeg');
-            res.setHeader('Content-Disposition', `inline; filename=${src}`);
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Disposition', `inline; filename=${src}`);
 
-            const audioStream = fs.createReadStream(filePath);
+        const audioStream = fs.createReadStream(filePath);
 
-            audioStream.pipe(res);
+        audioStream.pipe(res);
 
-        } catch (error) {
-            console.error('Error serving YouTube audio:', error);
-            res.status(500).send('Error serving YouTube audio');
-        }
-    });
+    } catch (error) {
+        console.error('Error serving YouTube audio:', error);
+        res.status(500).send('Error serving YouTube audio');
+    }
 });
 
 app.get('/api/library', async (req, res) => {
