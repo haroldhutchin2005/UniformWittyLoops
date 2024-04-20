@@ -3,7 +3,6 @@ const axios = require('axios');
 const ytdl = require('ytdl-core');
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
-
 const app = express();
 const port = process.env.PORT || 8080;
 
@@ -13,8 +12,12 @@ app.use(express.static('public'));
 app.use(express.json());
 
 function cleanFileName(fileName) {
+    // Replace spaces with _
     fileName = fileName.replace(/\s+/g, '_');
+    
+    // Remove unfamiliar symbols
     fileName = fileName.replace(/[^\w\s\-.]/g, '');
+
     return fileName;
 }
 
@@ -32,13 +35,16 @@ app.get('/api/upload', async (req, res) => {
 
         const info = await ytdl.getInfo(link);
         const title = sanitize(info.videoDetails.title);
-        const cleanTitle = cleanFileName(title);
 
         const response = await axios.get(`https://deku-rest-api.replit.app/ytdl?url=${link}&type=mp4`, {
             responseType: 'arraybuffer'
         });
 
-        let fileName = `${cleanTitle}.mp3`;
+        let fileName = `${title}.mp3`;
+
+        // Clean file name
+        fileName = cleanFileName(fileName);
+
         const filePath = `${__dirname}/${fileName}`;
 
         await fs.promises.writeFile(filePath, Buffer.from(response.data, 'binary'));
@@ -54,7 +60,7 @@ app.get('/api/upload', async (req, res) => {
     }
 });
 
-app.get('/files', async (req, res) => {
+app.get('/files', (req, res) => {
     const { src } = req.query;
 
     if (!src) {
@@ -63,12 +69,12 @@ app.get('/files', async (req, res) => {
 
     const filePath = `${__dirname}/${src}`;
 
-    try {
-        const fileExists = await fs.promises.access(filePath, fs.constants.F_OK);
-        if (!fileExists) {
-            return res.status(404).json({ error: 'File does not exist in the file system' });
-        }
+    // Check if the file exists
+    if (!fs.existsSync(filePath)) {
+        return res.status(404).send('The file does not exist');
+    }
 
+    try {
         res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('Content-Disposition', `inline; filename=${src}`);
 
@@ -77,9 +83,6 @@ app.get('/files', async (req, res) => {
         audioStream.pipe(res);
 
     } catch (error) {
-        if (error.code === 'ENOENT') {
-            return res.status(404).json({ error: 'File does not exist in the file system' });
-        }
         console.error('Error serving YouTube audio:', error);
         res.status(500).send('Error serving YouTube audio');
     }
