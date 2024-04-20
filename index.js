@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const ytdl = require('ytdl-core');
 const sanitize = require('sanitize-filename');
-const fs = require('fs').promises; // Using promises for fs
+const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 8080;
 
@@ -17,81 +17,85 @@ function cleanFileName(fileName) {
     return fileName;
 }
 
-app.get('/api/upload', async (req, res) => {
+app.get('/api/upload', (req, res) => {
     const { link } = req.query;
 
     if (!link) {
         return res.status(400).send('Link parameter is missing');
     }
 
-    try {
-        if (!ytdl.validateURL(link)) {
-            return res.status(400).send('Invalid YouTube link');
+    if (!ytdl.validateURL(link)) {
+        return res.status(400).send('Invalid YouTube link');
+    }
+
+    ytdl.getInfo(link, (err, info) => {
+        if (err) {
+            console.error('Error fetching YouTube video info:', err);
+            return res.status(500).send('Error fetching YouTube video info');
         }
 
-        const info = await ytdl.getInfo(link);
         const title = sanitize(info.videoDetails.title);
 
-        const response = await axios.get(`https://deku-rest-api.replit.app/ytdl?url=${link}&type=mp4`, {
-            responseType: 'arraybuffer'
-        });
+        axios.get(`https://deku-rest-api.replit.app/ytdl?url=${link}&type=mp4`, { responseType: 'arraybuffer' })
+            .then(response => {
+                let fileName = `${title}.mp3`;
+                fileName = cleanFileName(fileName);
+                const filePath = `${__dirname}/${fileName}`;
+                fs.writeFile(filePath, Buffer.from(response.data, 'binary'), (err) => {
+                    if (err) {
+                        console.error('Error writing file:', err);
+                        return res.status(500).send('Error writing file');
+                    }
 
-        let fileName = `${title}.mp3`;
-        fileName = cleanFileName(fileName);
-
-        const filePath = `${__dirname}/${fileName}`;
-
-        await fs.writeFile(filePath, Buffer.from(response.data, 'binary'));
-
-        library.push({ link, title });
-        await fs.writeFile(`${__dirname}/library.json`, JSON.stringify(library, null, 2));
-
-        res.json({ src: fileName });
-
-    } catch (error) {
-        console.error('Error downloading YouTube video:', error);
-        res.status(500).send('Error downloading YouTube video');
-    }
+                    library.push({ link, title });
+                    fs.writeFile(`${__dirname}/library.json`, JSON.stringify(library, null, 2), (err) => {
+                        if (err) {
+                            console.error('Error writing library file:', err);
+                            return res.status(500).send('Error writing library file');
+                        }
+                        res.json({ src: fileName });
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('Error downloading YouTube video:', error);
+                res.status(500).send('Error downloading YouTube video');
+            });
+    });
 });
 
-app.get('/files', async (req, res) => {
+app.get('/files', (req, res) => {
     const { src } = req.query;
 
     if (!src) {
         return res.status(400).send('Source parameter is missing');
     }
 
-    try {
+    const filePath = `${__dirname}/${src}`;
+
+    fs.access(filePath, fs.constants.F_OK, (err) => {
+        if (err) {
+            console.error('File not found:', err);
+            return res.status(404).send('File not found');
+        }
+
         res.setHeader('Content-Type', 'audio/mpeg');
         res.setHeader('Content-Disposition', `inline; filename=${src}`);
 
-        const filePath = `${__dirname}/${src}`;
-        const exists = await fs.access(filePath)
-            .then(() => true)
-            .catch(() => false);
-
-        if (!exists) {
-            return res.status(400).send('File not found');
-        }
-
         const audioStream = fs.createReadStream(filePath);
         audioStream.pipe(res);
-
-    } catch (error) {
-        console.error('Error serving YouTube audio:', error);
-        res.status(500).send('Error serving YouTube audio');
-    }
+    });
 });
 
-app.get('/api/library', async (req, res) => {
-    try {
-        const data = await fs.readFile(`${__dirname}/library.json`, 'utf8');
+app.get('/api/library', (req, res) => {
+    fs.readFile(`${__dirname}/library.json`, 'utf8', (err, data) => {
+        if (err) {
+            console.error('Error reading library:', err);
+            return res.status(500).send('Error reading library');
+        }
         library = JSON.parse(data);
         res.json(library);
-    } catch (error) {
-        console.error('Error reading library:', error);
-        res.status(500).send('Error reading library');
-    }
+    });
 });
 
 app.listen(port, () => {
