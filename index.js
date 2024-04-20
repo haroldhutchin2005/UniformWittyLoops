@@ -12,12 +12,8 @@ app.use(express.static('public'));
 app.use(express.json());
 
 function cleanFileName(fileName) {
-    // Replace spaces with _
     fileName = fileName.replace(/\s+/g, '_');
-    
-    // Remove unfamiliar symbols
     fileName = fileName.replace(/[^\w\s\-.]/g, '');
-
     return fileName;
 }
 
@@ -41,8 +37,6 @@ app.get('/api/upload', async (req, res) => {
         });
 
         let fileName = `${title}.mp3`;
-
-        // Clean file name
         fileName = cleanFileName(fileName);
 
         const filePath = `${__dirname}/${fileName}`;
@@ -56,7 +50,7 @@ app.get('/api/upload', async (req, res) => {
 
     } catch (error) {
         console.error('Error downloading YouTube video:', error);
-        res.status(500).send('Error downloading YouTube video');
+        return res.status(500).send('Error downloading YouTube video');
     }
 });
 
@@ -78,7 +72,7 @@ app.get('/files', (req, res) => {
 
     } catch (error) {
         console.error('Error serving YouTube audio:', error);
-        res.status(500).send('Error serving YouTube audio');
+        return res.status(500).send('Error serving YouTube audio');
     }
 });
 
@@ -89,7 +83,7 @@ app.get('/api/library', async (req, res) => {
         res.json(library);
     } catch (error) {
         console.error('Error reading library:', error);
-        res.status(500).send('Error reading library');
+        return res.status(500).send('Error reading library');
     }
 });
 
