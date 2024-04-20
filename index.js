@@ -3,6 +3,9 @@ const axios = require('axios');
 const ytdl = require('ytdl-core');
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
+const { spawn } = require('child_process');
+const { retro } = require('gradient-string');
+
 const app = express();
 const port = process.env.PORT || 8080;
 
@@ -38,7 +41,6 @@ app.get('/api/upload', async (req, res) => {
 
         let fileName = `${title}.mp3`;
         fileName = cleanFileName(fileName);
-
         const filePath = `${__dirname}/${fileName}`;
 
         await fs.promises.writeFile(filePath, Buffer.from(response.data, 'binary'));
@@ -50,7 +52,7 @@ app.get('/api/upload', async (req, res) => {
 
     } catch (error) {
         console.error('Error downloading YouTube video:', error);
-        return res.status(500).send('Error downloading YouTube video');
+        res.status(500).send('Error downloading YouTube video');
     }
 });
 
@@ -61,19 +63,31 @@ app.get('/files', (req, res) => {
         return res.status(400).send('Source parameter is missing');
     }
 
-    try {
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Content-Disposition', `inline; filename=${src}`);
+    const filePath = `${__dirname}/${src}`;
 
-        const filePath = `${__dirname}/${src}`;
-        const audioStream = fs.createReadStream(filePath);
+    fs.access(filePath, fs.constants.F_OK, (err) => {
+        if (err) {
+            if (err.code === 'ENOENT') {
+                return res.status(404).json({ error: 'File does not exist' });
+            } else {
+                console.error('Error accessing file:', err);
+                return res.status(500).send('Error accessing file');
+            }
+        }
 
-        audioStream.pipe(res);
+        try {
+            res.setHeader('Content-Type', 'audio/mpeg');
+            res.setHeader('Content-Disposition', `inline; filename=${src}`);
 
-    } catch (error) {
-        console.error('Error serving YouTube audio:', error);
-        return res.status(500).send('Error serving YouTube audio');
-    }
+            const audioStream = fs.createReadStream(filePath);
+
+            audioStream.pipe(res);
+
+        } catch (error) {
+            console.error('Error serving YouTube audio:', error);
+            res.status(500).send('Error serving YouTube audio');
+        }
+    });
 });
 
 app.get('/api/library', async (req, res) => {
@@ -83,7 +97,7 @@ app.get('/api/library', async (req, res) => {
         res.json(library);
     } catch (error) {
         console.error('Error reading library:', error);
-        return res.status(500).send('Error reading library');
+        res.status(500).send('Error reading library');
     }
 });
 
