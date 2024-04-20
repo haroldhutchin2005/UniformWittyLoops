@@ -4,10 +4,9 @@ const ytdl = require('ytdl-core');
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
 const { spawn } = require('child_process');
-const { retro } = require('gradient-string');
 
 const app = express();
-const port = process.env.PORT || 3030;
+const port = process.env.PORT || 8080;
 
 let library = [];
 
