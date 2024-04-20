@@ -3,7 +3,6 @@ const axios = require('axios');
 const ytdl = require('ytdl-core');
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
-const { spawn } = require('child_process');
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -33,13 +32,13 @@ app.get('/api/upload', async (req, res) => {
 
         const info = await ytdl.getInfo(link);
         const title = sanitize(info.videoDetails.title);
+        const cleanTitle = cleanFileName(title);
 
         const response = await axios.get(`https://deku-rest-api.replit.app/ytdl?url=${link}&type=mp4`, {
             responseType: 'arraybuffer'
         });
 
-        let fileName = `${title}.mp3`;
-        fileName = cleanFileName(fileName);
+        let fileName = `${cleanTitle}.mp3`;
         const filePath = `${__dirname}/${fileName}`;
 
         await fs.promises.writeFile(filePath, Buffer.from(response.data, 'binary'));
