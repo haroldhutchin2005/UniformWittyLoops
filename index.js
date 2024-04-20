@@ -2,7 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const ytdl = require('ytdl-core');
 const sanitize = require('sanitize-filename');
-const fs = require('fs');
+const fs = require('fs').promises; // Using promises for fs
 const app = express();
 const port = process.env.PORT || 8080;
 
@@ -12,12 +12,8 @@ app.use(express.static('public'));
 app.use(express.json());
 
 function cleanFileName(fileName) {
-    // Replace spaces with _
     fileName = fileName.replace(/\s+/g, '_');
-    
-    // Remove unfamiliar symbols
     fileName = fileName.replace(/[^\w\s\-.]/g, '');
-
     return fileName;
 }
 
@@ -41,16 +37,14 @@ app.get('/api/upload', async (req, res) => {
         });
 
         let fileName = `${title}.mp3`;
-
-        // Clean file name
         fileName = cleanFileName(fileName);
 
         const filePath = `${__dirname}/${fileName}`;
 
-        await fs.promises.writeFile(filePath, Buffer.from(response.data, 'binary'));
+        await fs.writeFile(filePath, Buffer.from(response.data, 'binary'));
 
         library.push({ link, title });
-        await fs.promises.writeFile(`${__dirname}/library.json`, JSON.stringify(library, null, 2));
+        await fs.writeFile(`${__dirname}/library.json`, JSON.stringify(library, null, 2));
 
         res.json({ src: fileName });
 
@@ -60,7 +54,7 @@ app.get('/api/upload', async (req, res) => {
     }
 });
 
-app.get('/files', (req, res) => {
+app.get('/files', async (req, res) => {
     const { src } = req.query;
 
     if (!src) {
@@ -72,8 +66,15 @@ app.get('/files', (req, res) => {
         res.setHeader('Content-Disposition', `inline; filename=${src}`);
 
         const filePath = `${__dirname}/${src}`;
-        const audioStream = fs.createReadStream(filePath);
+        const exists = await fs.access(filePath)
+            .then(() => true)
+            .catch(() => false);
 
+        if (!exists) {
+            return res.status(400).send('File not found');
+        }
+
+        const audioStream = fs.createReadStream(filePath);
         audioStream.pipe(res);
 
     } catch (error) {
@@ -84,7 +85,7 @@ app.get('/files', (req, res) => {
 
 app.get('/api/library', async (req, res) => {
     try {
-        const data = await fs.promises.readFile(`${__dirname}/library.json`, 'utf8');
+        const data = await fs.readFile(`${__dirname}/library.json`, 'utf8');
         library = JSON.parse(data);
         res.json(library);
     } catch (error) {
