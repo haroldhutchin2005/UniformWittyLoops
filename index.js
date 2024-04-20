@@ -7,7 +7,7 @@ const { spawn } = require('child_process');
 const { retro } = require('gradient-string');
 
 const app = express();
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 3030;
 
 let library = [];
 
