@@ -40,7 +40,7 @@ app.get('/api/upload', async (req, res) => {
             responseType: 'arraybuffer'
         });
 
-        let fileName = `${title}.mp3`;
+        let fileName = `${title}.m4a`;
 
         // Clean file name
         fileName = cleanFileName(fileName);
