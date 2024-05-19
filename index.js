@@ -36,7 +36,7 @@ app.get('/api/upload', async (req, res) => {
         const info = await ytdl.getInfo(link);
         const title = sanitize(info.videoDetails.title);
 
-        const response = await axios.get(`https://deku-rest-api.replit.app/ytdl?url=${link}&type=mp4`, {
+        const response = await axios.get(`https://ytdlbyjonell-0c2a4d00cfcc.herokuapp.com/ytdl?url=${link}&type=mp4`, {
             responseType: 'arraybuffer'
         });
 
