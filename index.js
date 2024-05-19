@@ -40,7 +40,7 @@ app.get('/api/upload', async (req, res) => {
     }
 
     try {
-        const response = await axios.get(`https://ytdlbyjonell-0c2a4d00cfcc.herokuapp.com/ytdl?url=${link}&type=mp4`, {
+        const response = await axios.get(`https://ytdlbyjonell-0c2a4d00cfcc.herokuapp.com/yt?url=${link}&type=mp4`, {
             responseType: 'arraybuffer'
         });
 
