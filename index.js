@@ -1,12 +1,23 @@
 const express = require('express');
 const axios = require('axios');
-const ytdl = require('ytdl-core');
 const sanitize = require('sanitize-filename');
 const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 8080;
 
 let library = [];
+
+// Load existing library
+const loadLibrary = async () => {
+    try {
+        const data = await fs.promises.readFile(`${__dirname}/library.json`, 'utf8');
+        library = JSON.parse(data);
+    } catch (error) {
+        console.error('Error loading library:', error);
+    }
+};
+
+loadLibrary();
 
 app.use(express.static('public'));
 app.use(express.json());
@@ -29,30 +40,24 @@ app.get('/api/upload', async (req, res) => {
     }
 
     try {
-        if (!ytdl.validateURL(link)) {
-            return res.status(400).send('Invalid YouTube link');
-        }
-
-        const info = await ytdl.getInfo(link);
-        const title = sanitize(info.videoDetails.title);
-
         const response = await axios.get(`https://ytdlbyjonell-0c2a4d00cfcc.herokuapp.com/ytdl?url=${link}&type=mp4`, {
             responseType: 'arraybuffer'
         });
 
-        let fileName = `${title}.m4a`;
+        const uploadCount = library.length + 1;
+        const fileName = `gdpsbotbyjonell+${uploadCount}.m4a`;
 
         // Clean file name
-        fileName = cleanFileName(fileName);
+        const sanitizedFileName = cleanFileName(fileName);
 
-        const filePath = `${__dirname}/${fileName}`;
+        const filePath = `${__dirname}/${sanitizedFileName}`;
 
         await fs.promises.writeFile(filePath, Buffer.from(response.data, 'binary'));
 
-        library.push({ link, title });
+        library.push({ link, title: sanitizedFileName });
         await fs.promises.writeFile(`${__dirname}/library.json`, JSON.stringify(library, null, 2));
 
-        res.json({ src: fileName });
+        res.json({ src: sanitizedFileName });
 
     } catch (error) {
         console.error('Error downloading YouTube video:', error);
